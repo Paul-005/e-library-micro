@@ -110,11 +110,32 @@ public class PurchasedBooksPanel extends JPanel {
         titleLabel.setForeground(new Color(33, 33, 33));
         titleLabel.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 0));
 
-        // Create a panel for the title with appropriate padding
-        JPanel southPanel = new JPanel(new BorderLayout());
+        // Read Now button
+        JButton readButton = new JButton("Read Now");
+        readButton.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        readButton.setBackground(new Color(30, 136, 229)); // Use blue theme color
+        readButton.setForeground(Color.WHITE);
+        readButton.setFocusPainted(false);
+        readButton.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
+        readButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        
+        // Read button hover effect
+        readButton.addMouseListener(new MouseAdapter() {
+            public void mouseEntered(MouseEvent e) {
+                readButton.setBackground(new Color(25, 118, 210));
+            }
+            public void mouseExited(MouseEvent e) {
+                readButton.setBackground(new Color(30, 136, 229));
+            }
+        });
+
+        // Action to open the reader page using the callback function
+        readButton.addActionListener(e -> readBookCallback.accept(bookTitle));
+
+        JPanel southPanel = new JPanel(new BorderLayout(0, 8));
         southPanel.setBackground(Color.WHITE);
-        southPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
-        southPanel.add(titleLabel, BorderLayout.CENTER);
+        southPanel.add(titleLabel, BorderLayout.NORTH);
+        southPanel.add(readButton, BorderLayout.SOUTH);
 
         bookPanel.add(southPanel, BorderLayout.SOUTH);
 
