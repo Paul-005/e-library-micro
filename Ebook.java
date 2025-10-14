@@ -11,12 +11,12 @@ public class Ebook {
     private static final String LOGGED_IN_USER = "B.Tech Student";
     private static final List<String> purchasedBooks = new ArrayList<>();
     private static final List<String> availableBooks = List.of(
-            "Java: The Complete Reference",
-            "Head First Java",
-            "Effective Java",
+            "Cracking The Coding Interview",
+            "The Hooked: How to Build Habit-forming Products",
             "Clean Code",
             "The Pragmatic Programmer",
-            "The Lord of the Rings"
+            "Head First Java",
+            "Effective Java"
     );
 
     private static JPanel mainContentPanel;
@@ -136,9 +136,11 @@ public class Ebook {
         titleLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 20, 0));
         dashboardPanel.add(titleLabel, BorderLayout.NORTH);
 
-        JPanel booksPanel = new JPanel(new GridLayout(0, 3, 25, 25));
+        // Create a panel with 3 rows and 2 columns
+        JPanel booksPanel = new JPanel(new GridLayout(3, 2, 25, 25));
         booksPanel.setBackground(new Color(245, 247, 250));
         booksPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        booksPanel.setPreferredSize(new Dimension(900, 1200)); // Adjust size to fit 3x2 grid
 
         for (String bookTitle : availableBooks) {
             booksPanel.add(createBookPanel(bookTitle));
@@ -184,10 +186,12 @@ public class Ebook {
             }
         });
 
-        // Load image from root directory
+        // Load image based on book index
         JLabel coverLabel;
         try {
-            File imageFile = new File("download.jpeg");
+            int bookIndex = availableBooks.indexOf(bookTitle);
+            String imagePath = "images/" + bookIndex + "." + (bookIndex == 1 ? "png" : "jpeg");
+            File imageFile = new File(imagePath);
             
             if (imageFile.exists()) {
                 ImageIcon originalIcon = new ImageIcon(imageFile.getAbsolutePath());
@@ -288,6 +292,8 @@ public class Ebook {
         JFrame frame = new JFrame("Book Reader - " + bookTitle);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setSize(1000, 700);
+        frame.setExtendedState(Frame.MAXIMIZED_BOTH); // Maximize both width and height
+
         frame.setLocationRelativeTo(null);
         
         // Create the BookReaderPanel with a back action

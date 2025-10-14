@@ -142,10 +142,30 @@ public class OneBook {
         imagePanel.setBackground(Color.WHITE);
         imagePanel.setPreferredSize(new Dimension(280, 400));
 
+        // Define book titles and their corresponding image indices
+        String[] bookTitles = {
+            "Cracking The Coding Interview",
+            "The Hooked: How to Build Habit-forming Products",
+            "Clean Code",
+            "The Pragmatic Programmer",
+            "Head First Java",
+            "Effective Java"
+        };
+
+        // Find the index of the current book
+        int bookIndex = -1;
+        for (int i = 0; i < bookTitles.length; i++) {
+            if (bookTitles[i].equals(bookTitle)) {
+                bookIndex = i;
+                break;
+            }
+        }
+
         // Load book cover image
         JLabel coverLabel;
         try {
-            File imageFile = new File("download.jpeg");
+            String imagePath = "images/" + bookIndex + "." + (bookIndex == 1 ? "png" : "jpeg");
+            File imageFile = new File(imagePath);
             
             if (imageFile.exists()) {
                 ImageIcon originalIcon = new ImageIcon(imageFile.getAbsolutePath());
@@ -259,31 +279,9 @@ public class OneBook {
         buttonPanel.setBackground(Color.WHITE);
         buttonPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JButton readButton = createStyledButton("Read Book", new Color(30, 136, 229), new Color(25, 118, 210));
-        readButton.addActionListener(e -> {
-            SwingUtilities.getWindowAncestor(readButton).dispose();
-            SwingUtilities.invokeLater(() -> {
-                JFrame frame = new JFrame("Book Reader - " + bookTitle);
-                frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-                frame.setSize(1000, 700);
-                frame.setLocationRelativeTo(null);
-                
-                // Create the BookReaderPanel with a back action
-                ActionListener backAction = evt -> {
-                    frame.dispose();
-                    OneBook.main(new String[]{bookTitle});
-                };
-                
-                BookReaderPanel readerPanel = new BookReaderPanel(bookTitle, backAction);
-                frame.add(readerPanel);
-                frame.setVisible(true);
-            });
-        });
-
         JButton purchaseButton = createStyledButton("Purchase Now", new Color(76, 175, 80), new Color(67, 160, 71));
         JButton addToCartButton = createStyledButton("Add to Cart", new Color(100, 100, 100), new Color(80, 80, 80));
 
-        buttonPanel.add(readButton);
         buttonPanel.add(purchaseButton);
         buttonPanel.add(addToCartButton);
 
