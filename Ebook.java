@@ -1,36 +1,59 @@
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.File;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Consumer;
+import java.util.ArrayList;
+import javax.swing.event.*;
 
-public class Ebook {
+public class Ebook extends JFrame {
 
-    private static final String LOGGED_IN_USER = "B.Tech Student";
-    private static final List<String> purchasedBooks = new ArrayList<>();
-    private static final List<String> availableBooks = List.of(
-            "Cracking The Coding Interview",
-            "The Hooked: How to Build Habit-forming Products",
-            "Clean Code",
-            "The Pragmatic Programmer",
-            "Head First Java",
-            "Effective Java"
+    private final String username;
+    private List<String> availableBooks = List.of(
+        "Cracking The Coding Interview",
+        "The Hooked: How to Build Habit-forming Products",
+        "Clean Code",
+        "The Pragmatic Programmer",
+        "Head First Java",
+        "Effective Java"
     );
-
-    private static JPanel mainContentPanel;
-    private static CardLayout cardLayout;
-
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            Ebook ebook = new Ebook();
-            ebook.createAndShowGUI();
-        });
+    
+    private JPanel mainContentPanel;
+    private CardLayout cardLayout;
+    private JLabel userLabel;
+    
+    // Constructor that accepts username
+    public Ebook(String username) {
+        this.username = username;
+        initializeUI();
+    }
+    
+    // For backward compatibility
+    public Ebook() {
+        this("Guest"); // Default to guest user if no username provided
     }
 
-    public JPanel createEbookPanel() {
+    public static void main(String[] args) {
+        // This should be launched from Signup.java after successful login
+        JOptionPane.showMessageDialog(null, 
+            "Please launch the application from the Signup/Login screen.", 
+            "Info", 
+            JOptionPane.INFORMATION_MESSAGE);
+        System.exit(0);
+    }
+
+    private void initializeUI() {
+        setTitle("E-Library - " + username);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setSize(1100, 750);
+        setMinimumSize(new Dimension(900, 650));
+        setLocationRelativeTo(null);
+        
         JPanel mainPanel = new JPanel(new BorderLayout());
+        
+        // Load user's purchased books from database
+        List<String> userBooks = DatabaseManager.getPurchasedBooks(username);
         
         // App bar and Navbar
         JMenuBar menuBar = createMenuBar();
@@ -41,27 +64,14 @@ public class Ebook {
 
         // Add the dashboard and purchased books panels
         mainContentPanel.add(createDashboardPanel(), "Dashboard");
-        mainContentPanel.add(createPurchasedBooksPanel(), "Purchased");
+        mainContentPanel.add(createPurchasedBooksPanel(DatabaseManager.getPurchasedBooks(username)), "Purchased");
         
         mainPanel.add(menuBar, BorderLayout.NORTH);
         mainPanel.add(mainContentPanel, BorderLayout.CENTER);
         
-        return mainPanel;
+        add(mainPanel);
     }
     
-    private void createAndShowGUI() {
-        JFrame frame = new JFrame("E-Library Dashboard");
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(1100, 750);
-        frame.setMinimumSize(new Dimension(900, 650));
-        frame.setLocationRelativeTo(null);
-        
-        // Create and add the main panel
-        JPanel mainPanel = createEbookPanel();
-        frame.add(mainPanel);
-        
-        frame.setVisible(true);
-    }
 
     private JMenuBar createMenuBar() {
         JMenuBar menuBar = new JMenuBar();
@@ -72,7 +82,7 @@ public class Ebook {
         ));
 
         // App bar section
-        JLabel userLabel = new JLabel("📚 " + LOGGED_IN_USER + " Dashboard");
+        userLabel = new JLabel("📚 " + username + "'s Dashboard");
         userLabel.setForeground(Color.WHITE);
         userLabel.setFont(new Font("Segoe UI", Font.BOLD, 20));
         menuBar.add(userLabel);
@@ -94,213 +104,220 @@ public class Ebook {
         return menuBar;
     }
 
-    private static JButton createNavButton(String text, String cardName) {
-        JButton btn = new JButton(text);
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        btn.setForeground(Color.WHITE);
-        btn.setBackground(new Color(30, 136, 229));
-        btn.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(Color.WHITE, 1),
-            BorderFactory.createEmptyBorder(6, 15, 6, 15)
-        ));
-        btn.setFocusPainted(false);
-        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-
-        btn.addMouseListener(new MouseAdapter() {
-            public void mouseEntered(MouseEvent e) {
-                btn.setBackground(new Color(25, 118, 210));
-            }
-            public void mouseExited(MouseEvent e) {
-                btn.setBackground(new Color(30, 136, 229));
-            }
-        });
-
-        btn.addActionListener(e -> {
-            if (cardName.equals("Purchased")) {
-                updatePurchasedBooksPanel();
+    private JButton createNavButton(String text, String cardName) {
+        JButton button = new JButton(text);
+        button.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        button.setForeground(Color.WHITE);
+        button.setContentAreaFilled(false);
+        button.setBorderPainted(false);
+        button.setFocusPainted(false);
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        button.addActionListener(e -> {
+            if ("Purchased".equals(cardName)) {
+                // Refresh purchased books list when switching to the Purchased tab
+                List<String> userBooks = DatabaseManager.getPurchasedBooks(username);
+                mainContentPanel.remove(1); // Remove old purchased panel
+                mainContentPanel.add(createPurchasedBooksPanel(userBooks), "Purchased");
+                mainContentPanel.revalidate();
+                mainContentPanel.repaint();
             }
             cardLayout.show(mainContentPanel, cardName);
         });
-
-        return btn;
+        return button;
     }
 
-    private static JPanel createDashboardPanel() {
-        JPanel dashboardPanel = new JPanel(new BorderLayout(20, 20));
-        dashboardPanel.setBorder(BorderFactory.createEmptyBorder(30, 40, 30, 40));
-        dashboardPanel.setBackground(new Color(245, 247, 250));
+    private JPanel createDashboardPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
-        JLabel titleLabel = new JLabel("Available Books", SwingConstants.CENTER);
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 36));
-        titleLabel.setForeground(new Color(33, 33, 33));
+        // Title
+        JLabel titleLabel = new JLabel("Available Books");
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 24));
         titleLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 20, 0));
-        dashboardPanel.add(titleLabel, BorderLayout.NORTH);
+        panel.add(titleLabel, BorderLayout.NORTH);
 
-        // Create a panel with 3 rows and 2 columns
-        JPanel booksPanel = new JPanel(new GridLayout(3, 2, 25, 25));
-        booksPanel.setBackground(new Color(245, 247, 250));
-        booksPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        booksPanel.setPreferredSize(new Dimension(900, 1200)); // Adjust size to fit 3x2 grid
+        // Books grid
+        // ALIGNMENT CHANGE: new GridLayout(3, 2, 20, 20) for 3 rows and 2 columns
+        JPanel booksPanel = new JPanel(new GridLayout(3, 2, 20, 20));
+        booksPanel.setBackground(Color.WHITE);
 
-        for (String bookTitle : availableBooks) {
-            booksPanel.add(createBookPanel(bookTitle));
+        for (String book : availableBooks) {
+            JPanel bookCard = createBookCard(book, false);
+            booksPanel.add(bookCard);
         }
 
         JScrollPane scrollPane = new JScrollPane(booksPanel);
         scrollPane.setBorder(null);
         scrollPane.getVerticalScrollBar().setUnitIncrement(16);
-        dashboardPanel.add(scrollPane, BorderLayout.CENTER);
+        panel.add(scrollPane, BorderLayout.CENTER);
 
-        return dashboardPanel;
+        return panel;
     }
 
-    private static JPanel createBookPanel(String bookTitle) {
-        JPanel bookPanel = new JPanel(new BorderLayout(10, 10));
-        bookPanel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(220, 220, 220), 1, true),
-                BorderFactory.createEmptyBorder(20, 20, 20, 20)
+    private JPanel createBookCard(String bookTitle, boolean isPurchased) {
+        JPanel card = new JPanel(new BorderLayout());
+        card.setBackground(Color.WHITE);
+        card.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(230, 230, 230)),
+            BorderFactory.createEmptyBorder(15, 15, 15, 15)
         ));
-        bookPanel.setBackground(Color.WHITE);
-        bookPanel.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        card.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
-        // Add hover effect
-        bookPanel.addMouseListener(new MouseAdapter() {
-            public void mouseEntered(MouseEvent e) {
-                bookPanel.setBorder(BorderFactory.createCompoundBorder(
-                    BorderFactory.createLineBorder(new Color(30, 136, 229), 2, true),
-                    BorderFactory.createEmptyBorder(19, 19, 19, 19)
-                ));
-                bookPanel.setBackground(new Color(250, 252, 255));
-            }
-            public void mouseExited(MouseEvent e) {
-                bookPanel.setBorder(BorderFactory.createCompoundBorder(
-                    BorderFactory.createLineBorder(new Color(220, 220, 220), 1, true),
-                    BorderFactory.createEmptyBorder(20, 20, 20, 20)
-                ));
-                bookPanel.setBackground(Color.WHITE);
-            }
-            public void mouseClicked(MouseEvent e) {
-                // Close current window and open book details
-                SwingUtilities.getWindowAncestor(bookPanel).dispose();
-                SwingUtilities.invokeLater(() -> OneBook.main(new String[]{bookTitle}));
-            }
-        });
+        // Book title
+        JLabel titleLabel = new JLabel(bookTitle);
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        titleLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
 
-        // Load image based on book index
-        JLabel coverLabel;
+        // Book cover image
+        JPanel coverPlaceholder = new JPanel(new BorderLayout());
+        coverPlaceholder.setPreferredSize(new Dimension(150, 200));
+        coverPlaceholder.setBackground(new Color(245, 245, 245));
+        
+        // Find book index for image
+        int bookIndex = availableBooks.indexOf(bookTitle);
+        String imagePath = "images/" + bookIndex + "." + (bookIndex == 1 ? "png" : "jpeg");
+        File imageFile = new File(imagePath);
+        
         try {
-            int bookIndex = availableBooks.indexOf(bookTitle);
-            String imagePath = "images/" + bookIndex + "." + (bookIndex == 1 ? "png" : "jpeg");
-            File imageFile = new File(imagePath);
-            
             if (imageFile.exists()) {
                 ImageIcon originalIcon = new ImageIcon(imageFile.getAbsolutePath());
                 Image originalImage = originalIcon.getImage();
-                Image resizedImage = originalImage.getScaledInstance(140, 200, Image.SCALE_SMOOTH);
-                coverLabel = new JLabel(new ImageIcon(resizedImage));
-                coverLabel.setBorder(BorderFactory.createCompoundBorder(
-                    BorderFactory.createLineBorder(new Color(200, 200, 200), 1),
-                    BorderFactory.createEmptyBorder(5, 5, 5, 5)
-                ));
+                Image resizedImage = originalImage.getScaledInstance(150, 200, Image.SCALE_SMOOTH);
+                JLabel coverLabel = new JLabel(new ImageIcon(resizedImage));
+                coverLabel.setHorizontalAlignment(JLabel.CENTER);
+                coverPlaceholder.add(coverLabel, BorderLayout.CENTER);
             } else {
-                System.err.println("Image file not found: " + imageFile.getAbsolutePath());
-                coverLabel = new JLabel("📖");
-                coverLabel.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 80));
-                coverLabel.setForeground(new Color(150, 150, 150));
+                // Fallback to icon if image not found
+                JLabel iconLabel = new JLabel("📚", JLabel.CENTER);
+                iconLabel.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 60));
+                coverPlaceholder.add(iconLabel);
             }
         } catch (Exception e) {
             e.printStackTrace();
-            coverLabel = new JLabel("📖");
-            coverLabel.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 80));
-            coverLabel.setForeground(new Color(150, 150, 150));
+            // Fallback to icon if there's an error loading the image
+            JLabel iconLabel = new JLabel("📚", JLabel.CENTER);
+            iconLabel.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 60));
+            coverPlaceholder.add(iconLabel);
         }
-
-        coverLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        bookPanel.add(coverLabel, BorderLayout.CENTER);
-
-        // Book title
-        JLabel titleLabel = new JLabel("<html><center><b>" + bookTitle + "</b></center></html>", SwingConstants.CENTER);
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 15));
-        titleLabel.setForeground(new Color(33, 33, 33));
-        titleLabel.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 0));
-
-        // Purchase button
-        JButton purchaseButton = new JButton("Purchase");
-        purchaseButton.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        purchaseButton.setBackground(new Color(76, 175, 80));
-        purchaseButton.setForeground(Color.WHITE);
-        purchaseButton.setFocusPainted(false);
-        purchaseButton.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
-        purchaseButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
-
-        purchaseButton.addMouseListener(new MouseAdapter() {
-            public void mouseEntered(MouseEvent e) {
-                purchaseButton.setBackground(new Color(67, 160, 71));
-            }
-            public void mouseExited(MouseEvent e) {
-                purchaseButton.setBackground(new Color(76, 175, 80));
-            }
-        });
-
-        purchaseButton.addActionListener(e -> {
-            if (purchasedBooks.contains(bookTitle)) {
-                JOptionPane.showMessageDialog(null, 
-                    "You have already purchased this book!", 
-                    "Already Purchased", 
-                    JOptionPane.INFORMATION_MESSAGE);
-            } else {
-                int response = JOptionPane.showConfirmDialog(null, 
-                    "Purchase '" + bookTitle + "' for your library?", 
-                    "Confirm Purchase", 
-                    JOptionPane.YES_NO_OPTION,
-                    JOptionPane.QUESTION_MESSAGE);
-                if (response == JOptionPane.YES_OPTION) {
-                    purchasedBooks.add(bookTitle);
-                    JOptionPane.showMessageDialog(null, 
-                        "Successfully purchased '" + bookTitle + "! 🎉\nCheck 'My Books' to view it.", 
-                        "Success", 
-                        JOptionPane.INFORMATION_MESSAGE);
+        
+        // Add border and padding
+        coverPlaceholder.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(220, 220, 220), 1),
+            BorderFactory.createEmptyBorder(5, 5, 5, 5)
+        ));
+        
+        // Action button - changes based on whether book is purchased
+        JButton actionButton = new JButton(isPurchased ? "Read Now" : "View More");
+        actionButton.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        
+        if (isPurchased) {
+            // Blue color for Read Now button
+            actionButton.setBackground(new Color(66, 133, 244));
+            actionButton.addMouseListener(new java.awt.event.MouseAdapter() {
+                public void mouseEntered(java.awt.event.MouseEvent evt) {
+                    actionButton.setBackground(new Color(51, 103, 214));
                 }
-            }
-        });
+                public void mouseExited(java.awt.event.MouseEvent evt) {
+                    actionButton.setBackground(new Color(66, 133, 244));
+                }
+            });
+            
+            // Open book reader directly for purchased books
+            actionButton.addActionListener(e -> {
+                showReader(bookTitle);
+            });
+        } else {
+            // Green color for View More button
+            actionButton.setBackground(new Color(102, 187, 106));
+            actionButton.addMouseListener(new java.awt.event.MouseAdapter() {
+                public void mouseEntered(java.awt.event.MouseEvent evt) {
+                    actionButton.setBackground(new Color(85, 170, 85));
+                }
+                public void mouseExited(java.awt.event.MouseEvent evt) {
+                    actionButton.setBackground(new Color(102, 187, 106));
+                }
+            });
+            
+            // Show book details for non-purchased books
+            actionButton.addActionListener(e -> {
+                try {
+                    OneBook oneBook = new OneBook(username, bookTitle);
+                    oneBook.show();
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(Ebook.this, 
+                        "Error opening book details: " + ex.getMessage(), 
+                        "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            });
+        }
+        
+        actionButton.setForeground(Color.WHITE);
+        actionButton.setBorderPainted(false);
+        actionButton.setOpaque(true);
+        actionButton.setBorder(BorderFactory.createEmptyBorder(8, 20, 8, 20));
+        actionButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
-        JPanel southPanel = new JPanel(new BorderLayout(0, 8));
-        southPanel.setBackground(Color.WHITE);
-        southPanel.add(titleLabel, BorderLayout.NORTH);
-        southPanel.add(purchaseButton, BorderLayout.SOUTH);
+        // Add components to card
+        JPanel textPanel = new JPanel(new BorderLayout());
+        textPanel.setOpaque(false);
+        textPanel.add(titleLabel, BorderLayout.NORTH);
+        textPanel.add(Box.createVerticalStrut(10), BorderLayout.CENTER);
+        textPanel.add(actionButton, BorderLayout.SOUTH);
 
-        bookPanel.add(southPanel, BorderLayout.SOUTH);
-        return bookPanel;
+        card.add(coverPlaceholder, BorderLayout.CENTER);
+        card.add(textPanel, BorderLayout.SOUTH);
+
+        return card;
     }
-
-    private static JPanel createPurchasedBooksPanel() {
+    
+    private JPanel createPurchasedBooksPanel(List<String> purchasedBooks) {
         // Create a panel that will hold our PurchasedBooksPanel
         JPanel container = new JPanel(new BorderLayout());
         
         // Create the purchased books panel with a callback for when a book is clicked
-        PurchasedBooksPanel purchasedPanel = new PurchasedBooksPanel(
-            purchasedBooks, 
-            bookTitle -> showReader(bookTitle)
-        );
+        // ALIGNMENT CHANGE: new GridLayout(0, 2, 20, 20) for 2 columns (0 rows lets the layout determine the rows)
+        JPanel purchasedPanel = new JPanel(new GridLayout(0, 2, 20, 20));
+        purchasedPanel.setBackground(Color.WHITE);
         
-        container.add(purchasedPanel, BorderLayout.CENTER);
+        for (String book : purchasedBooks) {
+            JPanel bookCard = createBookCard(book, true);
+            purchasedPanel.add(bookCard);
+        }
+        
+        JScrollPane scrollPane = new JScrollPane(purchasedPanel);
+        scrollPane.setBorder(null);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        
+        container.add(scrollPane, BorderLayout.CENTER);
         return container;
+    }
+
+    // Method to add a book to purchased books list
+    public void addPurchasedBook(String bookTitle) {
+        if (DatabaseManager.addPurchasedBook(username, bookTitle)) {
+            updatePurchasedBooks();
+        }
+    }
+
+    // Method to check if a book is already purchased
+    public boolean isBookPurchased(String bookTitle) {
+        return DatabaseManager.isBookPurchased(username, bookTitle);
     }
     
     // Method to show the book reader
-    private static void showReader(String bookTitle) {
+    private void showReader(String bookTitle) {
         JFrame frame = new JFrame("Book Reader - " + bookTitle);
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         frame.setSize(1000, 700);
         frame.setExtendedState(Frame.MAXIMIZED_BOTH); // Maximize both width and height
-
-        frame.setLocationRelativeTo(null);
+        frame.setLocationRelativeTo(this);
         
         // Create the BookReaderPanel with a back action
         ActionListener backAction = e -> {
             frame.dispose();
             // Show the purchased books panel when going back
-            updatePurchasedBooksPanel();
+            updatePurchasedBooks();
             cardLayout.show(mainContentPanel, "Purchased");
         };
         
@@ -309,15 +326,15 @@ public class Ebook {
         frame.setVisible(true);
     }
     
-    private static void updatePurchasedBooksPanel() {
+    private void updatePurchasedBooks() {
         // Remove the old purchased books panel
         mainContentPanel.remove(1);
         
-        // Create and add a new one with updated content
-        JPanel newPurchasedPanel = createPurchasedBooksPanel();
+        // Create and add a new one with updated data
+        JPanel newPurchasedPanel = createPurchasedBooksPanel(DatabaseManager.getPurchasedBooks(username));
         mainContentPanel.add(newPurchasedPanel, "Purchased");
         
-        // Refresh the UI
+        // Refresh the display
         mainContentPanel.revalidate();
         mainContentPanel.repaint();
     }

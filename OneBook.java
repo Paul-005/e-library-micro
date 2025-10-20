@@ -1,24 +1,36 @@
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
+import javax.swing.event.*;
 
 public class OneBook {
 
-    private static String bookTitle = "Java: The Complete Reference";
+    private String bookTitle = "Java: The Complete Reference";
+    private boolean isPurchased = false;
+    private String username;
+    private JFrame frame;
+    private JButton actionButton;
 
-    public static void main(String[] args) {
-        if (args.length > 0) {
-            bookTitle = args[0];
-        }
-        SwingUtilities.invokeLater(OneBook::createAndShowGUI);
+    public OneBook(String username, String bookTitle) {
+        this.username = username;
+        this.bookTitle = bookTitle;
+        this.isPurchased = DatabaseManager.isBookPurchased(username, bookTitle);
     }
 
-    private static void createAndShowGUI() {
-        JFrame frame = new JFrame("Book Details - E-Library");
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+    public static void main(String[] args) {
+        // This should be launched from Ebook.java
+        JOptionPane.showMessageDialog(null, 
+            "Please access books through the main application.", 
+            "Info", 
+            JOptionPane.INFORMATION_MESSAGE);
+        System.exit(0);
+    }
+
+    public void show() {
+        frame = new JFrame("Book Details - " + bookTitle);
+        frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         frame.setSize(1100, 750);
         frame.setMinimumSize(new Dimension(900, 650));
         frame.setLocationRelativeTo(null);
@@ -34,7 +46,24 @@ public class OneBook {
         frame.setVisible(true);
     }
 
-    private static JPanel createHeader() {
+    private void openBookReader() {
+        JFrame readerFrame = new JFrame("Reading: " + bookTitle);
+        readerFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        readerFrame.setSize(1000, 700);
+        readerFrame.setLocationRelativeTo(frame);
+
+        BookReaderPanel readerPanel = new BookReaderPanel(bookTitle, e -> {
+            readerFrame.dispose();
+            // When closing the reader, show the book details again
+            frame.setVisible(true);
+        });
+
+        readerFrame.add(readerPanel);
+        frame.setVisible(false);
+        readerFrame.setVisible(true);
+    }
+
+    private JPanel createHeader() {
         JPanel headerPanel = new JPanel(new BorderLayout());
         headerPanel.setBackground(new Color(30, 136, 229));
         headerPanel.setBorder(BorderFactory.createCompoundBorder(
@@ -69,20 +98,10 @@ public class OneBook {
             JFrame currentFrame = (JFrame) SwingUtilities.getWindowAncestor(backButton);
             currentFrame.dispose();
             
-            // Create and show the Ebook view
+            // Create and show the Ebook view with the current username
             SwingUtilities.invokeLater(() -> {
-                JFrame ebookFrame = new JFrame("E-Library Dashboard");
-                ebookFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-                ebookFrame.setSize(1100, 750);
-                ebookFrame.setMinimumSize(new Dimension(900, 650));
-                ebookFrame.setLocationRelativeTo(null);
-                
-                // Create and add the Ebook panel
-                Ebook ebook = new Ebook();
-                JPanel ebookPanel = ebook.createEbookPanel();
-                ebookFrame.add(ebookPanel);
-                
-                ebookFrame.setVisible(true);
+                Ebook ebook = new Ebook(username);
+                ebook.setVisible(true);
             });
         });
 
@@ -97,7 +116,7 @@ public class OneBook {
         return headerPanel;
     }
 
-    private static JPanel createBookDetailPanel() {
+    private JPanel createBookDetailPanel() {
         JPanel mainPanel = new JPanel(new BorderLayout(30, 30));
         mainPanel.setBackground(new Color(245, 247, 250));
         mainPanel.setBorder(BorderFactory.createEmptyBorder(40, 50, 40, 50));
@@ -137,7 +156,7 @@ public class OneBook {
         return mainPanel;
     }
 
-    private static JPanel createImagePanel() {
+    private JPanel createImagePanel() {
         JPanel imagePanel = new JPanel(new BorderLayout());
         imagePanel.setBackground(Color.WHITE);
         imagePanel.setPreferredSize(new Dimension(280, 400));
@@ -193,7 +212,7 @@ public class OneBook {
         return imagePanel;
     }
 
-    private static JPanel createBookInfoPanel() {
+    private JPanel createBookInfoPanel() {
         JPanel infoPanel = new JPanel();
         infoPanel.setLayout(new BoxLayout(infoPanel, BoxLayout.Y_AXIS));
         infoPanel.setBackground(Color.WHITE);
@@ -255,15 +274,15 @@ public class OneBook {
         pricePanel.setBorder(BorderFactory.createEmptyBorder(20, 0, 20, 0));
         pricePanel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel priceLabel = new JLabel("₹899");
+        JLabel priceLabel = new JLabel("$9.99");
         priceLabel.setFont(new Font("Segoe UI", Font.BOLD, 36));
         priceLabel.setForeground(new Color(76, 175, 80));
 
-        JLabel originalPrice = new JLabel("₹1,499");
+        JLabel originalPrice = new JLabel("$19.99");
         originalPrice.setFont(new Font("Segoe UI", Font.PLAIN, 20));
         originalPrice.setForeground(new Color(150, 150, 150));
         
-        JLabel discount = new JLabel("40% OFF");
+        JLabel discount = new JLabel("50% OFF");
         discount.setFont(new Font("Segoe UI", Font.BOLD, 16));
         discount.setForeground(Color.WHITE);
         discount.setBackground(new Color(244, 67, 54));
@@ -279,11 +298,55 @@ public class OneBook {
         buttonPanel.setBackground(Color.WHITE);
         buttonPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JButton purchaseButton = createStyledButton("Purchase Now", new Color(76, 175, 80), new Color(67, 160, 71));
-        JButton addToCartButton = createStyledButton("Add to Cart", new Color(100, 100, 100), new Color(80, 80, 80));
+        // Action button
+        actionButton = new JButton(isPurchased ? "Read Now" : "Purchase for $9.99");
+        actionButton.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        actionButton.setBackground(isPurchased ? new Color(76, 175, 80) : new Color(33, 150, 243));
+        actionButton.setForeground(Color.WHITE);
+        actionButton.setFocusPainted(false);
+        actionButton.setBorderPainted(false);
+        actionButton.setOpaque(true);
+        actionButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        actionButton.setPreferredSize(new Dimension(200, 50));
 
-        buttonPanel.add(purchaseButton);
-        buttonPanel.add(addToCartButton);
+        actionButton.addActionListener(e -> {
+            if (isPurchased) {
+                // Open book reader
+                openBookReader();
+            } else {
+                // Purchase book
+                int confirm = JOptionPane.showConfirmDialog(
+                    frame,
+                    "Purchase '" + bookTitle + "' for $9.99?",
+                    "Confirm Purchase",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.QUESTION_MESSAGE
+                );
+
+                if (confirm == JOptionPane.YES_OPTION) {
+                    if (DatabaseManager.addPurchasedBook(username, bookTitle)) {
+                        isPurchased = true;
+                        actionButton.setText("Read Now");
+                        actionButton.setBackground(new Color(76, 175, 80));
+                        JOptionPane.showMessageDialog(
+                            frame,
+                            "Thank you for your purchase! You can now read the book.",
+                            "Purchase Successful",
+                            JOptionPane.INFORMATION_MESSAGE
+                        );
+                    } else {
+                        JOptionPane.showMessageDialog(
+                            frame,
+                            "Failed to complete purchase. Please try again.",
+                            "Error",
+                            JOptionPane.ERROR_MESSAGE
+                        );
+                    }
+                }
+            }
+        });
+
+        buttonPanel.add(actionButton);
 
         // Add all components
         infoPanel.add(titleLabel);
